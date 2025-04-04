@@ -1,15 +1,6 @@
-# scraper.py
-import time
-import logging
-import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+import requests
 from bs4 import BeautifulSoup
-from selenium.common.exceptions import TimeoutException, WebDriverException
-from config import URL, DELAY_SECONDS, OUTPUT_CSV
+import logging
 
 # Setup logging
 logging.basicConfig(
@@ -17,68 +8,64 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-def initialize_driver():
-    """Initialize and return the Selenium WebDriver."""
-    options = Options()
-    options.add_argument("--headless")  # Run in headless mode for performance
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
+def scrape_page(url):
     try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        logging.info("Chrome WebDriver initialized successfully.")
-        return driver
-    except WebDriverException as e:
-        logging.error(f"WebDriver initialization failed: {e}")
-        raise
+        # Send a GET request to the page
+        logging.info(f"Fetching the page: {url}")
+        response = requests.get(url)
+        
+        # Check if the request was successful (status code 200)
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch the page. Status code: {response.status_code}")
+            return None
 
-def scrape_webpage(driver, url):
-    """Scrape the content of the specified URL and return extracted text blocks."""
-    try:
-        driver.get(url)
-        time.sleep(DELAY_SECONDS)
-        soup = BeautifulSoup(driver.page_source, "html.parser")
+        # Parse the content using BeautifulSoup
+        logging.info("Parsing the page content...")
+        soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Extract meaningful content blocks from the main content area
-        content_div = soup.find("div", class_="content")
-        if not content_div:
-            logging.warning("Could not find main content div.")
-            return []
+        # Extract the title of the page
+        page_title = soup.title.string if soup.title else "No title found"
+        logging.info(f"Page Title: {page_title}")
 
-        text_blocks = []
-        for tag in content_div.find_all(["h1", "h2", "h3", "p", "li"]):
-            text = tag.get_text(strip=True)
-            if text:
-                text_blocks.append({"tag": tag.name, "text": text})
+        # Example: Extract all paragraph texts
+        paragraphs = soup.find_all('p')
+        if not paragraphs:
+            logging.warning("No paragraphs found on the page.")
+        for p in paragraphs:
+            print(p.get_text())
 
-        logging.info(f"Extracted {len(text_blocks)} text blocks from the page.")
-        return text_blocks
+        # Example: Extracting headings (h1, h2, h3)
+        headings = soup.find_all(['h1', 'h2', 'h3'])
+        if not headings:
+            logging.warning("No headings found on the page.")
+        for heading in headings:
+            print(heading.get_text())
 
-    except TimeoutException as te:
-        logging.error(f"Timeout occurred while loading {url}: {te}")
-        return []
+        # Example of handling a specific element (e.g., by ID or class)
+        # Adjust this section as needed based on the webpage's structure
+        try:
+            # If the program has a specific section with ID "program-info"
+            program_info = soup.find(id='program-info')
+            if program_info:
+                logging.info("Program info section found.")
+                print(program_info.get_text())
+            else:
+                logging.warning("No program info section found.")
+        except AttributeError as e:
+            logging.error(f"Error while searching for program info section: {e}")
+
+        return soup  # Return the parsed soup for further processing
+
+    except requests.exceptions.RequestException as e:
+        # Handle network-related issues (e.g., connectivity problems, invalid URL)
+        logging.error(f"Error during request to {url}: {e}")
+        return None
+
     except Exception as e:
-        logging.error(f"Unexpected error during scraping: {e}")
-        return []
+        # Catch all other exceptions and log them
+        logging.error(f"An unexpected error occurred: {e}")
+        return None
 
-def save_to_csv(data, filename):
-    """Save extracted data to a CSV file."""
-    try:
-        df = pd.DataFrame(data)
-        df.to_csv(filename, index=False, encoding='utf-8')
-        logging.info(f"Saved data to {filename}")
-    except Exception as e:
-        logging.error(f"Failed to save CSV: {e}")
-
-
-def main():
-    driver = initialize_driver()
-    try:
-        data = scrape_webpage(driver, URL)
-        if data:
-            save_to_csv(data, OUTPUT_CSV)
-    finally:
-        driver.quit()
-        logging.info("Driver closed.")
-
-if __name__ == "__main__":
-    main()
+# Example usage
+url = 'https://www.uml.edu/msb/departments/operations-info-systems/programs/msba.aspx'
+scrape_page(url)
