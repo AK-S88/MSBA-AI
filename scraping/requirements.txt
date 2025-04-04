@@ -1,0 +1,4 @@
+selenium==4.19.0
+beautifulsoup4==4.12.3
+pandas==2.2.2
+webdriver-manager==4.0.1
