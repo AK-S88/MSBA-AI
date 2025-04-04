@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import logging
+import csv
 
 # Setup logging
 logging.basicConfig(
@@ -27,32 +28,28 @@ def scrape_page(url):
         page_title = soup.title.string if soup.title else "No title found"
         logging.info(f"Page Title: {page_title}")
 
-        # Example: Extract all paragraph texts
+        # Extract all paragraphs
         paragraphs = soup.find_all('p')
+        paragraph_texts = []
         if not paragraphs:
             logging.warning("No paragraphs found on the page.")
         for p in paragraphs:
-            print(p.get_text())
+            paragraph_texts.append(p.get_text())
 
-        # Example: Extracting headings (h1, h2, h3)
+        # Extract all headings (h1, h2, h3)
         headings = soup.find_all(['h1', 'h2', 'h3'])
+        heading_texts = []
         if not headings:
             logging.warning("No headings found on the page.")
         for heading in headings:
-            print(heading.get_text())
+            heading_texts.append(heading.get_text())
 
-        # Example of handling a specific element (e.g., by ID or class)
-        # Adjust this section as needed based on the webpage's structure
-        try:
-            # If the program has a specific section with ID "program-info"
-            program_info = soup.find(id='program-info')
-            if program_info:
-                logging.info("Program info section found.")
-                print(program_info.get_text())
-            else:
-                logging.warning("No program info section found.")
-        except AttributeError as e:
-            logging.error(f"Error while searching for program info section: {e}")
+        # Extract specific section (e.g., program info by ID)
+        program_info = soup.find(id='program-info')
+        program_info_text = program_info.get_text() if program_info else "No program info found"
+
+        # Save the scraped data to a CSV file
+        save_to_csv(page_title, paragraph_texts, heading_texts, program_info_text)
 
         return soup  # Return the parsed soup for further processing
 
@@ -65,6 +62,25 @@ def scrape_page(url):
         # Catch all other exceptions and log them
         logging.error(f"An unexpected error occurred: {e}")
         return None
+
+def save_to_csv(page_title, paragraphs, headings, program_info):
+    # Define the file path where you want to save the data
+    csv_file = 'scraped_data.csv'
+    
+    # Check if the file already exists, if not, create the file with headers
+    try:
+        with open(csv_file, mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            
+            # Write the header only if the file is empty (this helps in appending data)
+            if file.tell() == 0:
+                writer.writerow(['Page Title', 'Paragraph Texts', 'Headings', 'Program Info'])
+
+            # Write the scraped data into the CSV
+            writer.writerow([page_title, ' '.join(paragraphs), ' '.join(headings), program_info])
+            logging.info("Data saved to CSV.")
+    except Exception as e:
+        logging.error(f"Failed to save data to CSV: {e}")
 
 # Example usage
 url = 'https://www.uml.edu/msb/departments/operations-info-systems/programs/msba.aspx'
