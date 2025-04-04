@@ -1,0 +1,7 @@
+openai
+langchain
+streamlit
+selenium
+faiss-cpu
+tiktoken
+dotenv
