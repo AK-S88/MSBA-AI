@@ -21,7 +21,7 @@ logging.basicConfig(
 # Configuration
 PROGRESS_FILE = 'progress.json'
 CSV_OUTPUT_FILE = 'scraped_data.csv'
-LINKS_INPUT_FILE = 'links.csv'  # CSV file containing the 400 links
+LINKS_INPUT_FILE = '/kaggle/input/crawler-output-updated/uml_msba_links.csv'  # CSV file containing the 400 links
 REQUEST_DELAY_MIN = 1  # Minimum delay in seconds
 REQUEST_DELAY_MAX = 3  # Maximum delay in seconds
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
